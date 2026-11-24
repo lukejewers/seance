@@ -1,0 +1,11 @@
+{
+  "name": "seance",
+  "owner": { "name": "Luke Jewers" },
+  "plugins": [
+    {
+      "name": "seance",
+      "source": "./",
+      "description": "Report Claude Code session status to the seance board in Emacs"
+    }
+  ]
+}

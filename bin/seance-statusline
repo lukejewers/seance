@@ -1,0 +1,45 @@
+#!/bin/sh
+# Claude Code status line command for seance.
+#
+# Runs the status line command given as the first argument, if any, so
+# the status line looks as it did, then reports the model and how much
+# of the context window is used to Emacs.  Does nothing more outside a
+# terminal that seance tagged with SEANCE_ID.  See README.md.
+set -u
+
+input=$(cat)
+
+if [ -n "${1:-}" ]; then
+  printf '%s\n' "$input" | sh -c "$1"
+fi
+
+[ -n "${SEANCE_ID:-}" ] && command -v jq >/dev/null 2>&1 || exit 0
+
+info=$(printf '%s\n' "$input" | jq -c '
+  (.context_window // {}) as $c
+  | ($c.current_usage // {}
+     | (.input_tokens // 0) + (.cache_creation_input_tokens // 0)
+       + (.cache_read_input_tokens // 0)
+     | if . > 0 then . else null end) as $tokens
+  | {hook_event_name: "Info",
+     model_name: (.model.display_name // .model.id // null),
+     context_tokens: $tokens,
+     context_percent: (if $tokens then $c.used_percentage else null end)}
+') || exit 0
+
+# The status line runs after every message, so only call Emacs when the
+# numbers change.  The last report Emacs accepted is kept per terminal
+# and session, in a directory only this user can write to.
+session=$(printf '%s\n' "$input" | jq -r '.session_id // "" | gsub("[^A-Za-z0-9-]"; "")')
+dir="${XDG_RUNTIME_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}}/seance"
+last="$dir/statusline-$SEANCE_ID-$session"
+if [ -f "$last" ] && [ "$(cat "$last")" = "$info" ]; then
+  exit 0
+fi
+
+# Emacs answers t once it has recorded the numbers.
+reply=$(printf '%s\n' "$info" | "$(dirname "$0")/seance-send" .)
+if [ "$reply" = t ] && mkdir -p "$dir"; then
+  printf '%s' "$info" >"$last"
+fi
+exit 0

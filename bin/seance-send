@@ -1,0 +1,33 @@
+#!/bin/sh
+# Report to the seance board in Emacs.
+#
+# Usage: seance-send FILTER
+#
+# Applies the jq FILTER to the JSON on stdin and passes the result to
+# (seance-report SEANCE_ID JSON) through emacsclient, then prints what
+# Emacs returned.  The result's pid, which tells the agent apart from
+# agents it runs itself, defaults to CLAUDE_PID: the process ID that
+# Claude Code gives its hooks and status line.  Both values reach Emacs as string literals, never as
+# code.  Does nothing outside a terminal that seance tagged with a
+# numeric SEANCE_ID, and gives up after 5 seconds, so a missing Emacs
+# server never holds up the agent.
+set -u
+
+case "${SEANCE_ID:-}" in
+  '' | *[!0-9]*)
+    cat >/dev/null
+    exit 0
+    ;;
+esac
+
+if ! command -v jq >/dev/null 2>&1; then
+  cat >/dev/null
+  exit 0
+fi
+
+form=$(jq -r --arg id "$SEANCE_ID" "($1)"'
+  | .pid //= ($ENV.CLAUDE_PID // "" | tonumber? // null)
+  | "(seance-report \($id | tojson) \(tojson | tojson))"') || exit 0
+
+timeout 5 "${SEANCE_EMACSCLIENT:-emacsclient}" --eval "$form" 2>/dev/null
+exit 0

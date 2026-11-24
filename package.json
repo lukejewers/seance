@@ -1,0 +1,9 @@
+{
+  "name": "seance",
+  "private": true,
+  "description": "Report Pi session status to the seance board in Emacs",
+  "keywords": ["pi-package"],
+  "pi": {
+    "extensions": ["./pi/seance.ts"]
+  }
+}

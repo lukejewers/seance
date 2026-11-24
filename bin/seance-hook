@@ -1,0 +1,10 @@
+#!/bin/sh
+# Claude Code hook, also run by pi/seance.ts, for seance.
+#
+# Passes the fields of the hook input that the board uses to Emacs, and
+# nothing else.  Always exits 0 and prints nothing, as Claude Code adds
+# the output of some hooks to the conversation.  See README.md.
+exec "$(dirname "$0")/seance-send" '
+  {hook_event_name, notification_type, message, cwd, agent_id, reason}
+    + with_entries(select(.key | IN("model_name", "context_tokens", "context_percent", "pid")))
+' >/dev/null

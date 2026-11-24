@@ -1,0 +1,12 @@
+# Emacs
+*.elc
+*-autoloads.el
+*~
+\#*\#
+.\#*
+
+# Node, for type-checking pi/seance.ts
+node_modules/
+
+# Local Claude Code settings
+.claude/settings.local.json
